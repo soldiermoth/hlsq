@@ -86,3 +86,6 @@ func (c Colorizer) B(b []byte) []byte {
 	b = append(b, Reset...)
 	return b
 }
+
+// ColorSettings controls the colors that are used when serializing
+type ColorSettings struct{ Tag, Attr Color }

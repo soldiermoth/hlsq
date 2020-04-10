@@ -13,9 +13,16 @@ import (
 
 func main() {
 	var (
-		r   io.Reader
-		err error
+		colors = hlsqlib.ColorSettings{
+			Tag:  hlsqlib.LightBlue,
+			Attr: hlsqlib.Cyan,
+		}
+		chomp = flag.Bool("chomp", false, "Removes whitespace")
+		r     io.Reader
+		err   error
 	)
+	flag.Var(flagColor{&colors.Tag}, "color-tag", "Tag")
+	flag.Var(flagColor{&colors.Attr}, "color-attr", "Attr")
 	flag.Parse()
 	args := flag.Args()
 	// Detect if stdin
@@ -35,22 +42,35 @@ func main() {
 
 	var (
 		scanner = bufio.NewScanner(r)
-		tagC    = hlsqlib.NewColorizer(hlsqlib.LightBlue)
-		attrC   = hlsqlib.NewColorizer(hlsqlib.Cyan)
+		opts    = []hlsqlib.SerializeOption{
+			hlsqlib.ColorLines(colors),
+		}
 	)
+	if *chomp {
+		opts = append(opts, hlsqlib.Chomp)
+	}
 	for scanner.Scan() {
 		line, err := hlsqlib.ParseLine(scanner.Text())
 		if err != nil {
 			log.Fatalf("error parsing line=%q %q", scanner.Text(), err)
 		}
-		if tag, ok := line.(hlsqlib.Tag); ok {
-			tag.Name = tagC.S(tag.Name)
-			line = tag
-			for i, a := range tag.Attrs {
-				tag.Attrs[i].Key = attrC.S(a.Key)
-			}
-		}
-		hlsqlib.Serialize(os.Stdout, line)
+
+		hlsqlib.Serialize(os.Stdout, line, opts...)
 	}
 	fmt.Fprintln(os.Stdout)
+}
+
+type flagColor struct{ *hlsqlib.Color }
+
+func (f flagColor) String() string {
+	if f.Color == nil {
+		return "Example"
+	}
+	return hlsqlib.NewColorizer(*f.Color).S("Example")
+}
+func (f flagColor) Set(s string) (err error) {
+	if s != "" {
+		*f.Color, err = hlsqlib.ParseColor(s)
+	}
+	return
 }
