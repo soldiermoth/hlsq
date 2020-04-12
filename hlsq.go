@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ func main() {
 			Tag:  hlsqlib.LightBlue,
 			Attr: hlsqlib.Cyan,
 		}
+		query = flag.String("query", "", "Query")
 		chomp = flag.Bool("chomp", false, "Removes whitespace")
 		r     io.Reader
 		err   error
@@ -29,7 +29,9 @@ func main() {
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		r = os.Stdin
-		if len(args) > 0 {
+		if len(args) == 1 {
+			*query = args[0]
+		} else if len(args) > 0 {
 			log.Fatal("no arguments expected when reading from stdin")
 		}
 	} else if len(args) == 1 {
@@ -39,9 +41,8 @@ func main() {
 	} else {
 		log.Fatal("expected 1 argument of the m3u8 file to process or to read from stdin")
 	}
-
 	var (
-		scanner = bufio.NewScanner(r)
+		scanner = hlsqlib.NewScanner(r)
 		opts    = []hlsqlib.SerializeOption{
 			hlsqlib.ColorLines(colors),
 		}
@@ -49,12 +50,15 @@ func main() {
 	if *chomp {
 		opts = append(opts, hlsqlib.Chomp)
 	}
-	for scanner.Scan() {
-		line, err := hlsqlib.ParseLine(scanner.Text())
+	if query != nil && *query != "" {
+		queryFunc, err := hlsqlib.ParseQuery(*query)
 		if err != nil {
-			log.Fatalf("error parsing line=%q %q", scanner.Text(), err)
+			log.Fatalf("could not parse expression %q %q", *query, err)
 		}
-
+		opts = append([]hlsqlib.SerializeOption{hlsqlib.AttrMatch(queryFunc)}, opts...)
+	}
+	for scanner.Scan() {
+		line := scanner.Tag()
 		hlsqlib.Serialize(os.Stdout, line, opts...)
 	}
 	fmt.Fprintln(os.Stdout)

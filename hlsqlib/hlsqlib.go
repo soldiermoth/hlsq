@@ -1,63 +1,13 @@
 package hlsqlib
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
 )
-
-// Line interface for a line of the m3u8
-type Line interface{}
-
-// Raw is an unadorned string
-type Raw string
-
-// Tag represents a # prefixed tag
-type Tag struct {
-	Name  string
-	Attrs []Attr
-}
-
-// AttrValue is a generic interface for attribute value
-type AttrValue interface{ fmt.Stringer }
-
-// AttrEnum is a string without quotes
-type AttrEnum string
-
-func (a AttrEnum) String() string { return string(a) }
-
-// AttrString wraps a quoted string
-type AttrString string
-
-func (a AttrString) String() string { return `"` + string(a) + `"` }
-
-// AttrBool YES or NO
-type AttrBool bool
-
-func (a AttrBool) String() string {
-	if bool(a) {
-		return "YES"
-	}
-	return "NO"
-}
-
-// AttrFloat attribe of a float
-type AttrFloat float64
-
-func (a AttrFloat) String() string { return fmt.Sprintf("%.3f", a) }
-
-// AttrInt integer
-type AttrInt int
-
-func (a AttrInt) String() string { return strconv.Itoa(int(a)) }
-
-// Attr Key+Value tuple
-type Attr struct {
-	Key   string
-	Value AttrValue
-}
 
 // ParseAttr take a key & value string to convert to a tuple
 func ParseAttr(k, v string) Attr {
@@ -118,11 +68,48 @@ func (b *runeBuffer) pop() (rune, bool) {
 	return out, true
 }
 
-// ParseLine reads one line & parses it into the right structure
-func ParseLine(s string) (Line, error) {
-	if !strings.HasPrefix(s, "#") {
-		return Raw(s), nil
+// Scanner reqds through an M3U8 file & parses it into Tags
+type Scanner struct {
+	last          bool
+	err           error
+	current, next Tag
+	buf           *bufio.Scanner
+}
+
+// NewScanner creates a new scanner from a Reader
+func NewScanner(r io.Reader) *Scanner {
+	s := &Scanner{buf: bufio.NewScanner(r)}
+	// Read once to get ball rolling
+	s.Scan()
+	return s
+}
+
+// Tag returns the current tag after a Scan()
+func (s Scanner) Tag() Tag { return s.current }
+
+// Scan advances the scanner to the next Tag
+func (s *Scanner) Scan() bool {
+	for s.buf.Scan() {
+		// Get to next Tag
+		line := s.buf.Text()
+		if !strings.HasPrefix(line, "#") {
+			s.next.Trailing = append(s.next.Trailing, Raw(line))
+			continue
+		}
+		s.current = s.next
+		s.next, s.err = ParseTag(line)
+		return true
 	}
+	if !s.last {
+		s.last = true
+		s.current = s.next
+		return true
+	}
+	return false
+}
+
+// ParseTag reads one line & parses it into the right structure
+func ParseTag(s string) (Tag, error) {
 	parts := strings.SplitN(s, ":", 2)
 	tag := Tag{Name: parts[0]}
 	if len(parts) == 1 {
@@ -142,14 +129,19 @@ func ParseLine(s string) (Line, error) {
 }
 
 // SerializeOption is a function that is applied during serialization
-type SerializeOption func(Line) (Line, bool)
+type SerializeOption func(*Tag) bool
 
 // Chomp is an option that removes whitespace
-var Chomp = SerializeOption(func(l Line) (Line, bool) {
-	if raw, ok := l.(Raw); ok && strings.TrimSpace(string(raw)) == "" {
-		return l, false
+var Chomp = SerializeOption(func(t *Tag) bool {
+	var newRaw []Raw
+	for _, raw := range t.Trailing {
+		if strings.TrimSpace(string(raw)) == "" {
+			continue
+		}
+		newRaw = append(newRaw)
 	}
-	return l, true
+	t.Trailing = newRaw
+	return true
 })
 
 // ColorLines returns a SerializeOption to color the output
@@ -158,43 +150,50 @@ func ColorLines(settings ColorSettings) SerializeOption {
 		tag  = NewColorizer(settings.Tag)
 		attr = NewColorizer(settings.Attr)
 	)
-	return SerializeOption(func(l Line) (Line, bool) {
-		if t, ok := l.(Tag); ok {
-			t.Name = tag.S(t.Name)
-			for i, a := range t.Attrs {
-				t.Attrs[i].Key = attr.S(a.Key)
-			}
-			l = t
+	return SerializeOption(func(t *Tag) bool {
+		t.Name = tag.S(t.Name)
+		for i, a := range t.Attrs {
+			t.Attrs[i].Key = attr.S(a.Key)
 		}
-		return l, true
+		return true
+	})
+}
+
+// AttrMatch is a matcher func that will filter tags that have an attribute that satisfies the function
+func AttrMatch(f func(Attr) bool) SerializeOption {
+	return SerializeOption(func(t *Tag) bool {
+		for _, a := range t.Attrs {
+			if f(a) {
+				return true
+			}
+		}
+		return false
 	})
 }
 
 // Serialize writes one line to the output
-func Serialize(o io.Writer, l Line, opts ...SerializeOption) {
+func Serialize(o io.Writer, line Tag, opts ...SerializeOption) {
 	var ok bool
 	for _, opt := range opts {
-		if l, ok = opt(l); !ok {
+		if ok = opt(&line); !ok {
 			return
 		}
 	}
-	switch line := l.(type) {
-	case Tag:
-		out := line.Name
-		if len(line.Attrs) > 0 {
-			out += ":"
-			for i, attr := range line.Attrs {
-				if i > 0 {
-					out += ","
-				}
-				out += attr.Key
-				if attr.Value != nil {
-					out += "=" + attr.Value.String()
-				}
-			}
+	out := line.Name
+	if len(line.Attrs) > 0 {
+		out += ":"
+	}
+	for i, attr := range line.Attrs {
+		if i > 0 {
+			out += ","
 		}
-		fmt.Fprintln(o, out)
-	case Raw:
-		fmt.Fprintln(o, string(line))
+		out += attr.Key
+		if attr.Value != nil {
+			out += "=" + attr.Value.String()
+		}
+	}
+	fmt.Fprintln(o, out)
+	for _, raw := range line.Trailing {
+		fmt.Fprintln(o, string(raw))
 	}
 }
