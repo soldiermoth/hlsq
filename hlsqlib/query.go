@@ -18,11 +18,17 @@ var (
 	strOps = map[string]func(string, AttrValue) bool{
 		"=":  func(t string, a AttrValue) bool { s, ok := attrAsString(a); return ok && strings.EqualFold(s, t) },
 		"!=": func(t string, a AttrValue) bool { s, ok := attrAsString(a); return ok && !strings.EqualFold(s, t) },
-		"!~": func(t string, a AttrValue) bool {
+		"~": func(t string, a AttrValue) bool {
 			t = strings.ToLower(t)
 			s, ok := attrAsString(a)
 			s = strings.ToLower(s)
 			return ok && strings.Contains(s, t)
+		},
+		"!~": func(t string, a AttrValue) bool {
+			t = strings.ToLower(t)
+			s, ok := attrAsString(a)
+			s = strings.ToLower(s)
+			return ok && !strings.Contains(s, t)
 		},
 		"rlike": func(t string, a AttrValue) bool {
 			regex := regexp.MustCompile(t)
