@@ -48,7 +48,6 @@ func (b *runeBuffer) takeUntil(t rune) string {
 	var escaped bool
 	for i, r := range b.runes {
 		if r == t && !escaped {
-			escaped = false
 			out := b.runes[:i]
 			b.runes = b.runes[i+1:]
 			return string(out)
@@ -138,7 +137,7 @@ var Chomp = SerializeOption(func(t *Tag) bool {
 		if strings.TrimSpace(string(raw)) == "" {
 			continue
 		}
-		newRaw = append(newRaw)
+		newRaw = append(newRaw, raw)
 	}
 	t.Trailing = newRaw
 	return true

@@ -8,12 +8,12 @@ import (
 
 var (
 	numOps = map[string]func(float64, AttrValue) bool{
-		">":  func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && t > f },
-		">=": func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && t >= f },
-		"<":  func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && t < f },
-		"<=": func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && t <= f },
-		"=":  func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && t == f },
-		"!=": func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && t != f },
+		">":  func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && f > t },
+		">=": func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && f >= t },
+		"<":  func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && f < t },
+		"<=": func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && f <= t },
+		"=":  func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && f == t },
+		"!=": func(t float64, a AttrValue) bool { f, ok := attrAsNum(a); return ok && f != t },
 	}
 	strOps = map[string]func(string, AttrValue) bool{
 		"=":  func(t string, a AttrValue) bool { s, ok := attrAsString(a); return ok && strings.EqualFold(s, t) },
@@ -65,6 +65,7 @@ type Query func(Attr) bool
 
 // ParseQuery takes a string in form of {attr} {op} {value} & turns it into a Query func
 func ParseQuery(q string) (Query, error) {
+	q = strings.TrimSpace(q)
 	pieces := strings.Split(q, " ")
 	if len(pieces) != 3 {
 		return nil, fmt.Errorf("expected '{name} {op} {value}' got %q", q)
