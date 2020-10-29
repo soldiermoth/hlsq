@@ -16,14 +16,28 @@ func main() {
 			Tag:  hlsqlib.LightBlue,
 			Attr: hlsqlib.Cyan,
 		}
-		query = flag.String("query", "", "Query")
-		chomp = flag.Bool("chomp", false, "Removes whitespace")
-		r     io.Reader
-		err   error
+		tagSpecific []hlsqlib.SpecificTagColors
+		query       = flag.String("query", "", "Query")
+		chomp       = flag.Bool("chomp", false, "Removes whitespace")
+		demuxed     = flag.Bool("demuxed", false, "Set to demuxed colors")
+		r           io.Reader
+		err         error
 	)
 	flag.Var(flagColor{&colors.Tag}, "color-tag", "Tag")
 	flag.Var(flagColor{&colors.Attr}, "color-attr", "Attr")
 	flag.Parse()
+	if *demuxed {
+		colors.Tag = hlsqlib.White
+		colors.Attr = hlsqlib.White
+		colors.Raw = hlsqlib.Yellow
+		tagSpecific = append(tagSpecific, func(s string) (hlsqlib.Colorizer, bool) {
+			switch s {
+			case "#EXT-X-DISCONTINUITY":
+				return hlsqlib.NewColorizer(hlsqlib.Red), true
+			}
+			return "", false
+		})
+	}
 	args := flag.Args()
 	// Detect if stdin
 	stat, _ := os.Stdin.Stat()
@@ -44,7 +58,7 @@ func main() {
 	var (
 		scanner = hlsqlib.NewScanner(r)
 		opts    = []hlsqlib.SerializeOption{
-			hlsqlib.ColorLines(colors),
+			hlsqlib.ColorLines(colors, tagSpecific...),
 		}
 	)
 	if *chomp {

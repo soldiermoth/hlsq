@@ -144,15 +144,28 @@ var Chomp = SerializeOption(func(t *Tag) bool {
 })
 
 // ColorLines returns a SerializeOption to color the output
-func ColorLines(settings ColorSettings) SerializeOption {
+func ColorLines(settings ColorSettings, tags ...SpecificTagColors) SerializeOption {
 	var (
 		tag  = NewColorizer(settings.Tag)
 		attr = NewColorizer(settings.Attr)
+		raw  = Colorizer("")
 	)
+	if settings.Raw > 0 {
+		raw = NewColorizer(settings.Raw)
+	}
 	return SerializeOption(func(t *Tag) bool {
-		t.Name = tag.S(t.Name)
+		tagColor := tag
+		for _, override := range tags {
+			if o, ok := override(t.Name); ok {
+				tagColor = o
+			}
+		}
+		t.Name = tagColor.S(t.Name)
 		for i, a := range t.Attrs {
 			t.Attrs[i].Key = attr.S(a.Key)
+		}
+		for i, r := range t.Trailing {
+			t.Trailing[i] = Raw(raw.S(string(r)))
 		}
 		return true
 	})

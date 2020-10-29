@@ -15,3 +15,9 @@ There are some basic filtering operations available in this CLI in the form of a
 Currently supported operations by value type
 - Numbers: `>`, `>=`, `<`, `<=`, `=`, `!=`
 - String: `=`, `!=`, `~`, `!~`, & `rlike`
+
+## Demuxed Special Colors
+
+As tribute to Demuxed2020 added colors matching the SWAG tshirts: `-demuxed`
+
+~[Demuxed Flag](images/demuxed.png)
