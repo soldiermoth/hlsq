@@ -27,8 +27,8 @@ func ParseAttr(k, v string) Attr {
 	case f.MatchString(v):
 		f, _ := strconv.ParseFloat(v, 64)
 		attr.Value = AttrFloat(f)
-	case v == "YES" || v == "NO":
-		attr.Value = AttrBool(v == "YES")
+	case strings.EqualFold(v, "YES") || strings.EqualFold(v, "NO"):
+		attr.Value = AttrBool(strings.EqualFold(v, "YES"))
 	case len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"':
 		attr.Value = AttrString(v[1 : len(v)-1])
 	}
