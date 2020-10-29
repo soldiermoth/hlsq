@@ -26,4 +26,4 @@ $ go get github.com/soldiermoth/hlsq
 
 As tribute to Demuxed2020 added colors matching the SWAG tshirts: `-demuxed`
 
-~[Demuxed Flag](images/demuxed.png)
+![Demuxed Flag](images/demuxed.png)
