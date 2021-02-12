@@ -17,6 +17,17 @@ Currently supported operations by value type
 - String: `=`, `!=`, `~`, `!~`, & `rlike`
 
 ## Install Instructions
+
+### Pre-built Binary
+Visit the [latest releases](https://github.com/soldiermoth/hlsq/releases) and pull a pre-built binary
+
+### Homebrew
+
+```
+$ brew install soldiermoth/tap/bex
+```
+
+### From Source
 Assuming a recent installation of Go is installed: [https://golang.org/doc/install](https://golang.org/doc/install)
 ```
 $ go get github.com/soldiermoth/hlsq

@@ -15,6 +15,13 @@ archives:
       windows: Windows
       386: i386
       amd64: x86_64
+brews:
+  - tap:
+      owner: soldiermoth
+      name: homebrew-tap
+    folder: Formula
+    homepage:  https://github.com/soldiermoth/hlsq
+    description: Add some color to your HLS manifests
 checksum:
   name_template: 'checksums.txt'
 snapshot:
