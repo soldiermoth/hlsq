@@ -1,4 +1,8 @@
-# HLSQ: [github.com/soldiermoth/hlsq](https://github.com/soldiermoth/hlsq)
+# HLSQ
+
+<p align="center">
+  <a href="https://github.com/solidermoth/hlsq/actions?workflow=Release"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/soldiermoth/hlsq/Release?style=for-the-badge"></a>
+</p>
 
 A small CLI for adding some color to your HLS manifests and some basic filtering.
 This CLI is not strict in its parsing so it will still work for manifests preceeded
