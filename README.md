@@ -24,7 +24,7 @@ Visit the [latest releases](https://github.com/soldiermoth/hlsq/releases) and pu
 ### Homebrew
 
 ```
-$ brew install soldiermoth/tap/bex
+$ brew install soldiermoth/tap/hlsq
 ```
 
 ### From Source
